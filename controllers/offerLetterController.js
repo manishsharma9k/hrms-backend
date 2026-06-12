@@ -304,7 +304,7 @@ exports.sendOfferLetter = async (req, res) => {
         const transporter = createTransporter();
 
         await transporter.sendMail({
-            from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM_EMAIL}>`,
+            from: `"${process.env.SMTP_FROM_NAME || 'HRMS Portal'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
             to: candidateEmail,
             subject: `Offer Letter – ${rest.role} | ${rest.companyName || 'HRMS Portal'}`,
             html: `
@@ -321,6 +321,7 @@ exports.sendOfferLetter = async (req, res) => {
 
         res.status(200).json({ success: true, message: `Offer letter sent to ${candidateEmail}` });
     } catch (err) {
+        console.error('SMTP Send Error details:', err);
         res.status(500).json({ success: false, error: err.message });
     }
 };
