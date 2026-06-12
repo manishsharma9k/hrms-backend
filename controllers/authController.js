@@ -59,7 +59,8 @@ exports.register = async (req, res, next) => {
         let deptId = null;
         if (department) {
             const mongoose = require('mongoose');
-            if (mongoose.Types.ObjectId.isValid(department)) {
+            const isObjectId = mongoose.Types.ObjectId.isValid(department) && String(new mongoose.Types.ObjectId(department)) === department;
+            if (isObjectId) {
                 deptId = department;
             } else {
                 // name se department dhundho
@@ -67,7 +68,6 @@ exports.register = async (req, res, next) => {
                 if (found) {
                     deptId = found._id;
                 } else {
-                    // naya department create karo
                     const newDept = await Department.create({ name: department });
                     deptId = newDept._id;
                 }
