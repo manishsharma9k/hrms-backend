@@ -54,9 +54,29 @@ exports.registerAdmin = async (req, res, next) => {
 exports.register = async (req, res, next) => {
     try {
         const { name, email, password, role, department, technology, photo } = req.body;
-        const user = await User.create({ name, email, password, role, department, technology, photo: photo || '' });
 
-        if (role === 'employee') {
+        // department string (name) aa sakta hai ya ObjectId — dono handle karo
+        let deptId = null;
+        if (department) {
+            const mongoose = require('mongoose');
+            if (mongoose.Types.ObjectId.isValid(department)) {
+                deptId = department;
+            } else {
+                // name se department dhundho
+                const found = await Department.findOne({ name: { $regex: new RegExp(`^${department}$`, 'i') } });
+                if (found) {
+                    deptId = found._id;
+                } else {
+                    // naya department create karo
+                    const newDept = await Department.create({ name: department });
+                    deptId = newDept._id;
+                }
+            }
+        }
+
+        const user = await User.create({ name, email, password, role: role || 'employee', department: deptId, technology, photo: photo || '' });
+
+        if (role === 'employee' || !role) {
             const Notification = require('../models/notificationModel');
             const admins = await User.find({ role: { $in: ['admin', 'hr'] } }).select('_id email name');
 
