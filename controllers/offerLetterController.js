@@ -189,22 +189,26 @@ const wrapText = (text, maxChars = 92) => {
 
 const buildPdfBuffer = (pages) => {
     const objects = [];
-    const addObject = (content) => {
-        objects.push(content);
-        return objects.length;
-    };
-    const pageRefs = [];
+    // Object 1: Catalog
+    objects.push('<< /Type /Catalog /Pages 2 0 R >>');
+    // Object 2: Pages placeholder (will update with children references)
+    objects.push('');
+    // Object 3: Font
+    objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
 
+    const pageRefs = [];
     pages.forEach(lines => {
+        const streamId = objects.length + 1;
+        const pageId = streamId + 1;
+        pageRefs.push(pageId);
+
         const stream = ['BT', '/F1 11 Tf', '52 790 Td', '14 TL', ...lines.map(line => `(${pdfEscape(line)}) Tj T*`), 'ET'].join('\n');
-        const streamRef = addObject(`<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`);
-        const pageRef = addObject(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents ${streamRef} 0 R >>`);
-        pageRefs.push(pageRef);
+        objects.push(`<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`);
+        objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents ${streamId} 0 R >>`);
     });
 
-    objects.unshift('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-    objects.unshift(`<< /Type /Pages /Kids [${pageRefs.map(ref => `${ref} 0 R`).join(' ')}] /Count ${pageRefs.length} >>`);
-    objects.unshift('<< /Type /Catalog /Pages 2 0 R >>');
+    // Write correct Pages kids reference using final shifted indices
+    objects[1] = `<< /Type /Pages /Kids [${pageRefs.map(ref => `${ref} 0 R`).join(' ')}] /Count ${pageRefs.length} >>`;
 
     let pdf = '%PDF-1.4\n';
     const offsets = [0];
