@@ -1,31 +1,31 @@
 const nodemailer = require('nodemailer');
 
 const createTransporter = () => nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: false,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: false,
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
 });
 
 const buildOfferLetterHTML = (data) => {
-    const {
-        candidateName, candidateEmail, role, department, salary,
-        joiningDate, workLocation, workingHours, reportingManager,
-        companyName, hrName, hrDesignation, additionalBenefits, offerExpiry
-    } = data;
+  const {
+    candidateName, candidateEmail, role, department, salary,
+    joiningDate, workLocation, workingHours, reportingManager,
+    companyName, hrName, hrDesignation, additionalBenefits, offerExpiry
+  } = data;
 
-    const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-    const joining = new Date(joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-    const expiry = offerExpiry ? new Date(offerExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+  const joining = new Date(joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+  const expiry = offerExpiry ? new Date(offerExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
 
-    const gross = Number(salary);
-    const annual = gross * 12;
-    const basic = Math.round(gross * 0.40);
-    const hra = Math.round(gross * 0.20);
-    const special = Math.round(gross * 0.30);
-    const other = Math.round(gross * 0.10);
+  const gross = Number(salary);
+  const annual = gross * 12;
+  const basic = Math.round(gross * 0.40);
+  const hra = Math.round(gross * 0.20);
+  const special = Math.round(gross * 0.30);
+  const other = Math.round(gross * 0.10);
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8"/>
@@ -108,10 +108,10 @@ const buildOfferLetterHTML = (data) => {
     <table>
       <thead><tr><th>Component</th><th>Monthly (₹)</th><th>Annual (₹)</th></tr></thead>
       <tbody>
-        <tr><td>Basic Salary (40%)</td><td>₹${basic.toLocaleString('en-IN')}</td><td>₹${(basic*12).toLocaleString('en-IN')}</td></tr>
-        <tr><td>House Rent Allowance – HRA (20%)</td><td>₹${hra.toLocaleString('en-IN')}</td><td>₹${(hra*12).toLocaleString('en-IN')}</td></tr>
-        <tr><td>Special Allowance (30%)</td><td>₹${special.toLocaleString('en-IN')}</td><td>₹${(special*12).toLocaleString('en-IN')}</td></tr>
-        <tr><td>Other Allowances (10%)</td><td>₹${other.toLocaleString('en-IN')}</td><td>₹${(other*12).toLocaleString('en-IN')}</td></tr>
+        <tr><td>Basic Salary (40%)</td><td>₹${basic.toLocaleString('en-IN')}</td><td>₹${(basic * 12).toLocaleString('en-IN')}</td></tr>
+        <tr><td>House Rent Allowance – HRA (20%)</td><td>₹${hra.toLocaleString('en-IN')}</td><td>₹${(hra * 12).toLocaleString('en-IN')}</td></tr>
+        <tr><td>Special Allowance (30%)</td><td>₹${special.toLocaleString('en-IN')}</td><td>₹${(special * 12).toLocaleString('en-IN')}</td></tr>
+        <tr><td>Other Allowances (10%)</td><td>₹${other.toLocaleString('en-IN')}</td><td>₹${(other * 12).toLocaleString('en-IN')}</td></tr>
         <tr class="total-row"><td><strong>Gross CTC</strong></td><td><strong>₹${gross.toLocaleString('en-IN')}</strong></td><td><strong>₹${annual.toLocaleString('en-IN')}</strong></td></tr>
       </tbody>
     </table>
@@ -164,164 +164,155 @@ const buildOfferLetterHTML = (data) => {
 };
 
 const cleanText = (value = '') => String(value)
-    .replace(/[₹]/g, 'Rs.')
-    .replace(/[–—]/g, '-')
-    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '');
+  .replace(/[₹]/g, 'Rs.')
+  .replace(/[–—]/g, '-')
+  .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '');
 
 const pdfEscape = (value) => cleanText(value).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 
 const wrapText = (text, maxChars = 92) => {
-    const words = cleanText(text).split(/\s+/).filter(Boolean);
-    const lines = [];
-    let line = '';
-    words.forEach(word => {
-        const next = line ? `${line} ${word}` : word;
-        if (next.length > maxChars) {
-            if (line) lines.push(line);
-            line = word;
-        } else {
-            line = next;
-        }
-    });
-    if (line) lines.push(line);
-    return lines.length ? lines : [''];
+  const words = cleanText(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  words.forEach(word => {
+    const next = line ? `${line} ${word}` : word;
+    if (next.length > maxChars) {
+      if (line) lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  });
+  if (line) lines.push(line);
+  return lines.length ? lines : [''];
 };
 
 const buildPdfBuffer = (pages) => {
-    const objects = [];
-    // Object 1: Catalog
-    objects.push('<< /Type /Catalog /Pages 2 0 R >>');
-    // Object 2: Pages placeholder (will update with children references)
-    objects.push('');
-    // Object 3: Font
-    objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  const objects = [];
+  // Object 1: Catalog
+  objects.push('<< /Type /Catalog /Pages 2 0 R >>');
+  // Object 2: Pages placeholder (will update with children references)
+  objects.push('');
+  // Object 3: Font
+  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
 
-    const pageRefs = [];
-    pages.forEach(lines => {
-        const streamId = objects.length + 1;
-        const pageId = streamId + 1;
-        pageRefs.push(pageId);
+  const pageRefs = [];
+  pages.forEach(lines => {
+    const streamId = objects.length + 1;
+    const pageId = streamId + 1;
+    pageRefs.push(pageId);
 
-        const stream = ['BT', '/F1 11 Tf', '52 790 Td', '14 TL', ...lines.map(line => `(${pdfEscape(line)}) Tj T*`), 'ET'].join('\n');
-        objects.push(`<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`);
-        objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents ${streamId} 0 R >>`);
-    });
+    const stream = ['BT', '/F1 11 Tf', '52 790 Td', '14 TL', ...lines.map(line => `(${pdfEscape(line)}) Tj T*`), 'ET'].join('\n');
+    objects.push(`<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`);
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents ${streamId} 0 R >>`);
+  });
 
-    // Write correct Pages kids reference using final shifted indices
-    objects[1] = `<< /Type /Pages /Kids [${pageRefs.map(ref => `${ref} 0 R`).join(' ')}] /Count ${pageRefs.length} >>`;
+  // Write correct Pages kids reference using final shifted indices
+  objects[1] = `<< /Type /Pages /Kids [${pageRefs.map(ref => `${ref} 0 R`).join(' ')}] /Count ${pageRefs.length} >>`;
 
-    let pdf = '%PDF-1.4\n';
-    const offsets = [0];
-    objects.forEach((object, index) => {
-        offsets.push(Buffer.byteLength(pdf));
-        pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
-    });
-    const xrefOffset = Buffer.byteLength(pdf);
-    pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-    offsets.slice(1).forEach(offset => { pdf += `${String(offset).padStart(10, '0')} 00000 n \n`; });
-    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-    return Buffer.from(pdf, 'binary');
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(pdf));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(pdf);
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach(offset => { pdf += `${String(offset).padStart(10, '0')} 00000 n \n`; });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return Buffer.from(pdf, 'binary');
 };
 
 const buildOfferLetterPDF = (data) => {
-    const {
-        candidateName, candidateEmail, role, department, salary,
-        joiningDate, workLocation, workingHours, reportingManager,
-        companyName, hrName, hrDesignation, additionalBenefits, offerExpiry
-    } = data;
-    const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-    const joining = new Date(joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-    const expiry = offerExpiry ? new Date(offerExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'As communicated by HR';
-    const gross = Number(salary);
-    const annual = gross * 12;
-    const basic = Math.round(gross * 0.40);
-    const hra = Math.round(gross * 0.20);
-    const special = Math.round(gross * 0.30);
-    const other = Math.round(gross * 0.10);
-    const benefits = additionalBenefits?.split('\n').map(b => b.trim()).filter(Boolean);
+  const {
+    candidateName, candidateEmail, role, department, salary,
+    joiningDate, workLocation, workingHours, reportingManager,
+    companyName, hrName, hrDesignation, additionalBenefits, offerExpiry
+  } = data;
+  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+  const joining = new Date(joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+  const expiry = offerExpiry ? new Date(offerExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) : 'As communicated by HR';
+  const gross = Number(salary);
+  const annual = gross * 12;
+  const basic = Math.round(gross * 0.40);
+  const hra = Math.round(gross * 0.20);
+  const special = Math.round(gross * 0.30);
+  const other = Math.round(gross * 0.10);
+  const benefits = additionalBenefits?.split('\n').map(b => b.trim()).filter(Boolean);
 
-    const page1 = [
-        `${companyName || 'HRMS Portal'}`, 'Human Resources Department', '', 'OFFER LETTER',
-        `Date: ${today}`, `Reference: OL-${Date.now().toString().slice(-6)}`, '',
-        'To,', candidateName, candidateEmail, '', `Dear ${candidateName},`, '',
-        ...wrapText(`We are delighted to extend this offer of employment to you at ${companyName || 'our organization'}. After careful consideration of your qualifications and experience, we are pleased to offer you the position of ${role} in the ${department} department.`),
-        '', 'POSITION DETAILS', `Designation      : ${role}`, `Department       : ${department}`,
-        `Date of Joining  : ${joining}`, `Work Location    : ${workLocation || 'Head Office'}`,
-        `Working Hours    : ${workingHours || '9:00 AM - 6:00 PM (Mon-Sat)'}`,
-        `Reporting To     : ${reportingManager || 'Department Head'}`, '',
-        ...wrapText('Your employment will begin on the date mentioned above, subject to successful completion of joining formalities and document verification.'),
-        '', 'Page 1 of 3'
-    ];
+  const page1 = [
+    `${companyName || 'HRMS Portal'}`, 'Human Resources Department', '', 'OFFER LETTER',
+    `Date: ${today}`, `Reference: OL-${Date.now().toString().slice(-6)}`, '',
+    'To,', candidateName, candidateEmail, '', `Dear ${candidateName},`, '',
+    ...wrapText(`We are delighted to extend this offer of employment to you at ${companyName || 'our organization'}. After careful consideration of your qualifications and experience, we are pleased to offer you the position of ${role} in the ${department} department.`),
+    '', 'POSITION DETAILS', `Designation      : ${role}`, `Department       : ${department}`,
+    `Date of Joining  : ${joining}`, `Work Location    : ${workLocation || 'Head Office'}`,
+    `Working Hours    : ${workingHours || '9:00 AM - 6:00 PM (Mon-Sat)'}`,
+    `Reporting To     : ${reportingManager || 'Department Head'}`, '',
+    ...wrapText('Your employment will begin on the date mentioned above, subject to successful completion of joining formalities and document verification.'),
+    '', 'Page 1 of 3'
+  ];
 
-    const page2 = [
-        `${companyName || 'HRMS Portal'} - Offer Letter`, '', 'COMPENSATION STRUCTURE', '',
-        'Component                         Monthly          Annual',
-        '------------------------------------------------------------',
-        `Basic Salary (40%)                Rs.${basic.toLocaleString('en-IN').padStart(11)}   Rs.${(basic * 12).toLocaleString('en-IN')}`,
-        `House Rent Allowance - HRA (20%)  Rs.${hra.toLocaleString('en-IN').padStart(11)}   Rs.${(hra * 12).toLocaleString('en-IN')}`,
-        `Special Allowance (30%)           Rs.${special.toLocaleString('en-IN').padStart(11)}   Rs.${(special * 12).toLocaleString('en-IN')}`,
-        `Other Allowances (10%)            Rs.${other.toLocaleString('en-IN').padStart(11)}   Rs.${(other * 12).toLocaleString('en-IN')}`,
-        '------------------------------------------------------------',
-        `Gross CTC                         Rs.${gross.toLocaleString('en-IN').padStart(11)}   Rs.${annual.toLocaleString('en-IN')}`,
-        '', ...wrapText('Statutory deductions such as PF, ESI, TDS, Professional Tax, and any other applicable deductions will be made as per government norms and company policy.'),
-        '', 'ADDITIONAL BENEFITS',
-        ...(benefits?.length ? benefits.flatMap(item => wrapText(`- ${item}`, 88)) : ['- Benefits will be applicable as per company policy.']),
-        '', 'Page 2 of 3'
-    ];
+  const page2 = [
+    `${companyName || 'HRMS Portal'} - Offer Letter`, '', 'COMPENSATION STRUCTURE', '',
+    'Component                         Monthly          Annual',
+    '------------------------------------------------------------',
+    `Basic Salary (40%)                Rs.${basic.toLocaleString('en-IN').padStart(11)}   Rs.${(basic * 12).toLocaleString('en-IN')}`,
+    `House Rent Allowance - HRA (20%)  Rs.${hra.toLocaleString('en-IN').padStart(11)}   Rs.${(hra * 12).toLocaleString('en-IN')}`,
+    `Special Allowance (30%)           Rs.${special.toLocaleString('en-IN').padStart(11)}   Rs.${(special * 12).toLocaleString('en-IN')}`,
+    `Other Allowances (10%)            Rs.${other.toLocaleString('en-IN').padStart(11)}   Rs.${(other * 12).toLocaleString('en-IN')}`,
+    '------------------------------------------------------------',
+    `Gross CTC                         Rs.${gross.toLocaleString('en-IN').padStart(11)}   Rs.${annual.toLocaleString('en-IN')}`,
+    '', ...wrapText('Statutory deductions such as PF, ESI, TDS, Professional Tax, and any other applicable deductions will be made as per government norms and company policy.'),
+    '', 'ADDITIONAL BENEFITS',
+    ...(benefits?.length ? benefits.flatMap(item => wrapText(`- ${item}`, 88)) : ['- Benefits will be applicable as per company policy.']),
+    '', 'Page 2 of 3'
+  ];
 
-    const page3 = [
-        `${companyName || 'HRMS Portal'} - Offer Letter`, '', 'TERMS AND CONDITIONS', '',
-        ...[
-            'This offer is subject to successful completion of background verification and document submission.',
-            'You will be on a probation period of 6 months from the date of joining.',
-            'During probation, either party may terminate employment with 7 days notice.',
-            'Post-confirmation, the notice period will be 30 days on either side.',
-            'You are required to maintain strict confidentiality of all company information.',
-            'This offer is non-transferable and valid only for the candidate named in this letter.'
-        ].flatMap(item => wrapText(`- ${item}`, 88)),
-        '', 'OFFER ACCEPTANCE',
-        ...wrapText(`This offer is valid until ${expiry}. Please confirm your acceptance by replying to this email before the expiry date.`),
-        '', '', 'For the Company,                                  Candidate Acceptance,', '', '',
-        '______________________________                    ______________________________',
-        `${hrName || 'HR Manager'}                         ${candidateName}`,
-        `${hrDesignation || 'Human Resources'}             Signature and Date`, '',
-        'CONFIDENTIAL: This document is intended solely for the candidate named above.', '',
-        'Page 3 of 3'
-    ];
+  const page3 = [
+    `${companyName || 'HRMS Portal'} - Offer Letter`, '', 'TERMS AND CONDITIONS', '',
+    ...[
+      'This offer is subject to successful completion of background verification and document submission.',
+      'You will be on a probation period of 6 months from the date of joining.',
+      'During probation, either party may terminate employment with 7 days notice.',
+      'Post-confirmation, the notice period will be 30 days on either side.',
+      'You are required to maintain strict confidentiality of all company information.',
+      'This offer is non-transferable and valid only for the candidate named in this letter.'
+    ].flatMap(item => wrapText(`- ${item}`, 88)),
+    '', 'OFFER ACCEPTANCE',
+    ...wrapText(`This offer is valid until ${expiry}. Please confirm your acceptance by replying to this email before the expiry date.`),
+    '', '', 'For the Company,                                  Candidate Acceptance,', '', '',
+    '______________________________                    ______________________________',
+    `${hrName || 'HR Manager'}                         ${candidateName}`,
+    `${hrDesignation || 'Human Resources'}             Signature and Date`, '',
+    'CONFIDENTIAL: This document is intended solely for the candidate named above.', '',
+    'Page 3 of 3'
+  ];
 
-    return buildPdfBuffer([page1, page2, page3]);
+  return buildPdfBuffer([page1, page2, page3]);
 };
 
 exports.sendOfferLetter = async (req, res) => {
-    try {
-        const { candidateEmail, candidateName, ...rest } = req.body;
-        if (!candidateEmail || !candidateName || !rest.role || !rest.salary || !rest.joiningDate) {
-            return res.status(400).json({ success: false, error: 'Required fields missing' });
-        }
-
-        const offerData = { candidateName, candidateEmail, ...rest };
-        const pdf = buildOfferLetterPDF(offerData);
-        const transporter = createTransporter();
-
-        await transporter.sendMail({
-            from: `"${process.env.SMTP_FROM_NAME || 'HRMS Portal'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
-            to: candidateEmail,
-            subject: `Offer Letter – ${rest.role} | ${rest.companyName || 'HRMS Portal'}`,
-            html: `
-                <p>Dear ${candidateName},</p>
-                <p>Please find your offer letter attached as a 3-page PDF.</p>
-                <p>Regards,<br/>${rest.hrName || 'HR Team'}<br/>${rest.companyName || 'HRMS Portal'}</p>
-            `,
-            attachments: [{
-                filename: `Offer_Letter_${candidateName.replace(/\s+/g, '_')}.pdf`,
-                content: pdf,
-                contentType: 'application/pdf'
-            }]
-        });
-
-        res.status(200).json({ success: true, message: `Offer letter sent to ${candidateEmail}` });
-    } catch (err) {
-        console.error('SMTP Send Error details:', err);
-        res.status(500).json({ success: false, error: err.message });
+  try {
+    const { candidateEmail, candidateName, ...rest } = req.body;
+    if (!candidateEmail || !candidateName || !rest.role || !rest.salary || !rest.joiningDate) {
+      return res.status(400).json({ success: false, error: 'Required fields missing' });
     }
+
+    const offerData = { candidateName, candidateEmail, ...rest };
+    const htmlBody = buildOfferLetterHTML(offerData);
+    const transporter = createTransporter();
+
+    await transporter.sendMail({
+      from: `"${process.env.SMTP_FROM_NAME || 'HRMS Portal'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+      to: candidateEmail,
+      subject: `Offer Letter – ${rest.role} | ${rest.companyName || 'HRMS Portal'}`,
+      html: htmlBody
+    });
+
+    res.status(200).json({ success: true, message: `Offer letter sent to ${candidateEmail}` });
+  } catch (err) {
+    console.error('Offer Letter Send Error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 };

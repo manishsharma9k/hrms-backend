@@ -6,6 +6,7 @@ const Holiday = require('../models/holidayModel');
 const Attendance = require('../models/attendanceModel');
 const Recruitment = require('../models/recruitmentModel');
 const { ensureDefaultDepartments } = require('../utils/defaultDepartments');
+const resolveDepartmentId = require('../utils/resolveDepartmentId');
 
 // Helper: notify all admins + hr
 const notifyAdmins = async (message, type, link = '') => {
@@ -25,7 +26,8 @@ exports.getEmployees = async (req, res) => {
 exports.addEmployee = async (req, res) => {
     try {
         const { name, email, password, department, salary, technology } = req.body;
-        const employee = await User.create({ name, email, password, role: 'employee', department, salary, technology });
+        const deptId = await resolveDepartmentId(department);
+        const employee = await User.create({ name, email, password, role: 'employee', department: deptId, salary, technology });
         await notifyAdmins(`👤 New employee added: ${name}`, 'Employee', '/admin/employees');
         res.status(201).json({ success: true, data: employee });
     } catch (err) {
@@ -39,6 +41,9 @@ exports.updateEmployee = async (req, res) => {
         let employee = await User.findById(req.params.id);
         if (!employee) return res.status(404).json({ success: false, error: 'Employee not found' });
         if (req.body.password) delete req.body.password;
+        if (req.body.department !== undefined) {
+            req.body.department = await resolveDepartmentId(req.body.department);
+        }
         employee = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
         await notifyAdmins(`✏️ Employee profile updated: ${employee.name}`, 'Employee', '/admin/employees');
         res.status(200).json({ success: true, data: employee });

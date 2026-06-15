@@ -1,6 +1,7 @@
 const User = require('../models/userModel');
 const Department = require('../models/departmentModel');
 const { ensureDefaultDepartments } = require('../utils/defaultDepartments');
+const resolveDepartmentId = require('../utils/resolveDepartmentId');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
@@ -54,26 +55,7 @@ exports.registerAdmin = async (req, res, next) => {
 exports.register = async (req, res, next) => {
     try {
         const { name, email, password, role, department, technology, photo } = req.body;
-
-        // department string (name) aa sakta hai ya ObjectId — dono handle karo
-        let deptId = null;
-        if (department) {
-            const mongoose = require('mongoose');
-            const isObjectId = mongoose.Types.ObjectId.isValid(department) && String(new mongoose.Types.ObjectId(department)) === department;
-            if (isObjectId) {
-                deptId = department;
-            } else {
-                // name se department dhundho
-                const found = await Department.findOne({ name: { $regex: new RegExp(`^${department}$`, 'i') } });
-                if (found) {
-                    deptId = found._id;
-                } else {
-                    const newDept = await Department.create({ name: department });
-                    deptId = newDept._id;
-                }
-            }
-        }
-
+        const deptId = await resolveDepartmentId(department);
         const user = await User.create({ name, email, password, role: role || 'employee', department: deptId, technology, photo: photo || '' });
 
         if (role === 'employee' || !role) {
@@ -287,7 +269,7 @@ exports.updateProfile = async (req, res) => {
         if (name && name.trim()) fields.name = name.trim();
         if (phone !== undefined) fields.phone = phone;
         if (designation !== undefined) fields.designation = designation;
-        if (department !== undefined) fields.department = department || null;
+        if (department !== undefined) fields.department = await resolveDepartmentId(department);
         if (photo && photo.trim()) fields.photo = photo;
         const updated = await User.findByIdAndUpdate(req.user.id, { $set: fields }, { new: true, runValidators: true }).populate('department', 'name');
         res.status(200).json({ success: true, data: updated });
